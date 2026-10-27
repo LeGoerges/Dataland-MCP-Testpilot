@@ -12,6 +12,7 @@ COPY ./dataland-email-service/emailServiceOpenApi.json ./dataland-email-service/
 COPY ./dataland-user-service/userServiceOpenApi.json ./dataland-user-service/userServiceOpenApi.json
 COPY ./dataland-data-sourcing-service/dataSourcingServiceOpenApi.json ./dataland-data-sourcing-service/dataSourcingServiceOpenApi.json
 COPY ./dataland-accounting-service/accountingServiceOpenApi.json ./dataland-accounting-service/accountingServiceOpenApi.json
+COPY ./dataland-specification-service/specificationServiceOpenApi.json ./dataland-specification-service/specificationServiceOpenApi.json
 COPY ./dataland-frontend/ ./dataland-frontend/
 COPY ./dataland-backend-utils/src/main/resources/currencyCodes.json ./dataland-backend-utils/src/main/resources/currencyCodes.json
 COPY ./dataland-sharedElements/ ./dataland-sharedElements/

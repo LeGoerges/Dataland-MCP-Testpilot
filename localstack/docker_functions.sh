@@ -79,6 +79,8 @@ clear_docker_completely() {
 rebuild_docker_images() {
   local log_folder="./log/build/"
   local max_parallel=6
+  local build_pids=()
+  local build_scripts=()
   mkdir -p "$log_folder"
 
   for rebuild_script in ./build-utils/rebuild*.sh; do
@@ -92,10 +94,23 @@ rebuild_docker_images() {
     done
 
     LOCAL=true "$rebuild_script" &> "./$log_folder/$(basename "$rebuild_script").log" &
+    build_pids+=("$!")
+    build_scripts+=("$rebuild_script")
   done
 
   log_info "Detailed build logs: $log_folder"
-  wait
+  local failed=false
+  local index
+  for index in "${!build_pids[@]}"; do
+    if wait "${build_pids[$index]}"; then
+      continue
+    else
+      log_error "Docker build failed: ${build_scripts[$index]}. See $log_folder/$(basename "${build_scripts[$index]}").log"
+      failed=true
+    fi
+  done
+
+  [[ "$failed" == false ]]
 }
 
 rebuild_postgres_image() {

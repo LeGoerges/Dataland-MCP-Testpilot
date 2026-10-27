@@ -42,6 +42,9 @@ permissions:
       - redirector.gvt1.com:443
       - "local-dev.dataland.com:443"
 
+      # chatbot
+      - api.openai.com:443
+
       # IntelliJ setup
 
       - "download-cdn.jetbrains.com:443"
