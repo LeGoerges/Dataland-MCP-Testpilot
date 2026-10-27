@@ -27,6 +27,9 @@ plugins {
 }
 
 dependencies {
+    implementation(platform("org.springframework.ai:spring-ai-bom:2.0.2"))
+    implementation("org.springframework.ai:spring-ai-starter-mcp-server-webmvc")
+    implementation("org.springframework.ai:spring-ai-starter-model-openai")
     implementation(project(":dataland-backend-utils"))
     implementation(project(":dataland-specification-lib"))
     implementation(libs.springdoc.openapi.ui)
@@ -42,6 +45,7 @@ dependencies {
     implementation(Spring.boot.validation)
     implementation(libs.jackson.module.kotlin)
     testImplementation(Spring.boot.test)
+    testImplementation(libs.mockito.kotlin)
 }
 
 openApi {

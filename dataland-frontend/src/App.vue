@@ -8,6 +8,7 @@
     <router-view />
   </component>
   <TheFooter />
+  <FrameworkChatWidget />
   <VueQueryDevtools />
 </template>
 
@@ -31,6 +32,7 @@ import AuthenticationWrapper from '@/components/wrapper/AuthenticationWrapper.vu
 import { useRoute } from 'vue-router';
 
 import TheHeader from '@/components/generics/TheHeader.vue';
+import FrameworkChatWidget from '@/components/general/FrameworkChatWidget.vue';
 import TheFooter from '@dataland/shared-elements/footer';
 import { useDialog } from 'primevue/usedialog';
 import { VueQueryDevtools } from '@tanstack/vue-query-devtools';
@@ -42,7 +44,7 @@ const storeWindowWidth = (): void => {
 };
 export default defineComponent({
   name: 'app',
-  components: { TheHeader, DynamicDialog, AuthenticationWrapper, TheFooter, VueQueryDevtools },
+  components: { TheHeader, DynamicDialog, AuthenticationWrapper, TheFooter, VueQueryDevtools, FrameworkChatWidget },
 
   data() {
     return {

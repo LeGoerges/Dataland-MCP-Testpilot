@@ -39,6 +39,7 @@ local
 
 gitinfo
 .envrc
+/.env
 
 # local logging data
 /dataland-loki/data

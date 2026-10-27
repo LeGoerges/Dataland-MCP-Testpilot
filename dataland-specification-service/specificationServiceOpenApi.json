@@ -20,6 +20,57 @@
     }
   ],
   "paths": {
+    "/chat": {
+      "post": {
+        "tags": [
+          "framework-chat-controller"
+        ],
+        "summary": "Ask a question about Dataland framework specifications",
+        "operationId": "chat",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FrameworkChatRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkChatResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error occurred",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "headers": {
+              "WWW-Authenticate": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/frameworks/{frameworkSpecificationId}": {
       "get": {
         "tags": [
@@ -605,6 +656,67 @@
   },
   "components": {
     "schemas": {
+      "FrameworkChatMessage": {
+        "required": [
+          "content",
+          "role"
+        ],
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "USER",
+              "ASSISTANT"
+            ]
+          },
+          "content": {
+            "maxLength": 6000,
+            "minLength": 0,
+            "type": "string"
+          }
+        }
+      },
+      "FrameworkChatRequest": {
+        "required": [
+          "history",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "message": {
+            "maxLength": 2000,
+            "minLength": 0,
+            "type": "string"
+          },
+          "history": {
+            "maxItems": 10,
+            "minItems": 0,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FrameworkChatMessage"
+            }
+          }
+        }
+      },
+      "FrameworkChatResponse": {
+        "required": [
+          "answer",
+          "sources"
+        ],
+        "type": "object",
+        "properties": {
+          "answer": {
+            "type": "string"
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "IdWithRef": {
         "required": [
           "id",

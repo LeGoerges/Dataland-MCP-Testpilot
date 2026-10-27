@@ -91,6 +91,7 @@ tasks.register("generateClients") {
     dependsOn("generateUserServiceClient")
     dependsOn("generateDataSourcingServiceClient")
     dependsOn("generateAccountingServiceClient")
+    dependsOn("generateSpecificationServiceClient")
 }
 
 tasks.register("generateBackendClient", org.openapitools.generator.gradle.plugin.tasks.GenerateTask::class) {
@@ -317,6 +318,17 @@ tasks.register("generateAccountingServiceClient", org.openapitools.generator.gra
             "withSeparateModelsAndApi" to "true",
         ),
     )
+}
+
+tasks.register("generateSpecificationServiceClient", org.openapitools.generator.gradle.plugin.tasks.GenerateTask::class) {
+    description = "Generate the specification service client including framework chat."
+    group = "clients"
+    inputSpec.set(project.file("${project.rootDir}/dataland-specification-service/specificationServiceOpenApi.json").path)
+    outputDir.set(layout.buildDirectory.dir("clients/specificationservice").get().toString())
+    generatorName.set("typescript-axios")
+    configOptions.set(mapOf("withInterfaces" to "true", "withSeparateModelsAndApi" to "true"))
+    modelPackage.set("org.dataland.datalandfrontend.openApiClient.specificationservice.model")
+    apiPackage.set("org.dataland.datalandfrontend.openApiClient.specificationservice.api")
 }
 
 sourceSets {

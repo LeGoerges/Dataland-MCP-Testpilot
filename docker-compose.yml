@@ -726,6 +726,10 @@ services:
     <<: *uncritical-constants-env
     environment:
       PROXY_PRIMARY_URL: ${PROXY_PRIMARY_URL:-local-dev.dataland.com}
+      FRAMEWORK_CHAT_PROVIDER: ${FRAMEWORK_CHAT_PROVIDER:-none}
+      FRAMEWORK_CHAT_API_KEY: ${FRAMEWORK_CHAT_API_KEY:-}
+      FRAMEWORK_CHAT_BASE_URL: ${FRAMEWORK_CHAT_BASE_URL:-https://api.openai.com/v1}
+      FRAMEWORK_CHAT_MODEL: ${FRAMEWORK_CHAT_MODEL:-gpt-4.1-mini}
     logging:
       <<: *loki-logging
   email-service:

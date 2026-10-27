@@ -75,6 +75,14 @@ location /email/ {
   include utils/errorsAsJson.conf;
 }
 
+location = /specifications/mcp {
+  proxy_pass http://specification-service:8489/specifications/mcp;
+  include utils/proxy.conf;
+  proxy_buffering off;
+  proxy_cache off;
+  proxy_read_timeout 3600s;
+}
+
 location /specifications/ {
   proxy_pass http://specification-service:8489/specifications/;
   include utils/proxy.conf;

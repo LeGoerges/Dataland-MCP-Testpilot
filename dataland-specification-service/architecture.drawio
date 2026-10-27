@@ -1,0 +1,58 @@
+<mxfile host="app.diagrams.net" type="device">
+  <diagram id="framework-assistant" name="MCP und Chatbot">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="Dataland – Framework-Chatbot und MCP" style="text;html=1;align=left;verticalAlign=middle;fontSize=24;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="900" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="service" value="Bestehender Specification Service (Spring Boot + Spring AI)" style="swimlane;html=1;startSize=45;horizontal=1;rounded=1;fillColor=#f5f5f5;swimlaneFillColor=#fafafa;strokeColor=#666666;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="350" y="100" width="480" height="530" as="geometry" />
+        </mxCell>
+        <mxCell id="chat" value="Chat-Endpunkt + Spring AI ChatClient&lt;br&gt;&lt;font style=&quot;font-size:12px&quot;&gt;System-Prompt, Modellaufrufe und Tool Calling&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;" vertex="1" parent="service">
+          <mxGeometry x="30" y="80" width="420" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="mcp" value="MCP-Server (Spring AI)&lt;br&gt;&lt;font style=&quot;font-size:12px&quot;&gt;Tools für externe Clients&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=14;" vertex="1" parent="service">
+          <mxGeometry x="30" y="230" width="170" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="tools" value="Gemeinsame Framework-Tools&lt;br&gt;&lt;br&gt;list_frameworks&lt;br&gt;search_fields&lt;br&gt;get_field_definition" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;" vertex="1" parent="service">
+          <mxGeometry x="250" y="210" width="200" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="data" value="Vorhandene Specifications&lt;br&gt;&lt;font style=&quot;font-size:12px&quot;&gt;JSON-Dateien → beim Start im Speicher&lt;br&gt;Frameworks, Felder, Definitionen und Datentypen&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;" vertex="1" parent="service">
+          <mxGeometry x="30" y="400" width="420" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="frontend" value="Vue-Frontend&lt;br&gt;&lt;br&gt;Framework help&lt;br&gt;Chatfenster + TanStack-Mutation&lt;br&gt;&lt;font style=&quot;font-size:12px&quot;&gt;Verlauf im Browser&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="160" width="220" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="opencode" value="OpenCode&lt;br&gt;&lt;br&gt;MCP-Client + eigenes Modell" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="330" width="220" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="openai" value="OpenAI API&lt;br&gt;&lt;br&gt;Modell für den Frontend-Chat&lt;br&gt;&lt;font style=&quot;font-size:12px&quot;&gt;Key aus Backend-.env&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="900" y="165" width="220" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="frontend-chat" value="REST&lt;br&gt;POST /specifications/chat" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;startArrow=block;fontSize=12;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="frontend" target="chat">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="opencode-mcp" value="MCP / Streamable HTTP&lt;br&gt;/specifications/mcp" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;startArrow=block;fontSize=12;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="opencode" target="mcp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="chat-model" value="HTTPS&lt;br&gt;Antworten / Tool-Anfragen" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;startArrow=block;fontSize=12;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="chat" target="openai">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="chat-tools" value="Direkter Funktionsaufruf" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;fontSize=12;labelBackgroundColor=#fafafa;exitX=0.76;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="service" source="chat" target="tools">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="mcp-tools" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="service" source="mcp" target="tools">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tools-data" value="Lesen" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;fontSize=12;labelBackgroundColor=#fafafa;exitX=0.5;exitY=1;entryX=0.76;entryY=0;" edge="1" parent="service" source="tools" target="data">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="note" value="Ein bestehender Service, eine gemeinsame Tool-Implementierung.&lt;br&gt;MCP funktioniert ohne OpenAI-Key im Service. Der Frontend-Chat nutzt Tools direkt, ohne eigenen MCP-Client.&lt;br&gt;Die externen Routen laufen im Container-Stack über den vorhandenen Inbound-Proxy (hier vereinfacht ausgelassen)." style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=13;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="40" y="670" width="1080" height="80" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
