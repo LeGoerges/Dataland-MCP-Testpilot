@@ -702,7 +702,8 @@
       "FrameworkChatResponse": {
         "required": [
           "answer",
-          "sources"
+          "sources",
+          "toolCalls"
         ],
         "type": "object",
         "properties": {
@@ -714,6 +715,39 @@
             "items": {
               "type": "string"
             }
+          },
+          "toolCalls": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FrameworkToolCall"
+            }
+          }
+        }
+      },
+      "FrameworkToolCall": {
+        "required": [
+          "arguments",
+          "durationMs",
+          "name",
+          "successful"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "arguments": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "successful": {
+            "type": "boolean"
+          },
+          "durationMs": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },

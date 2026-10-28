@@ -1,6 +1,7 @@
 package org.dataland.datalandspecificationservice.chat
 
 import org.dataland.datalandspecification.database.SpecificationDatabase
+import org.dataland.datalandspecificationservice.model.FrameworkToolCall
 import org.springframework.ai.tool.annotation.Tool
 import org.springframework.ai.tool.annotation.ToolParam
 
@@ -8,12 +9,29 @@ import org.springframework.ai.tool.annotation.ToolParam
 class FrameworkTools(
     private val database: SpecificationDatabase,
     private val sources: MutableSet<String>? = null,
+    private val toolCalls: MutableList<FrameworkToolCall>? = null,
 ) {
     private var calls = 0
 
+    private fun <T> execute(
+        name: String,
+        arguments: Map<String, String> = emptyMap(),
+        action: () -> T,
+    ): T {
+        val start = System.nanoTime()
+        var successful = false
+        try {
+            if (toolCalls != null) {
+                check(++calls <= MAX_TOOL_CALLS) { "Tool call limit reached. Answer using information already retrieved." }
+            }
+            return action().also { successful = true }
+        } finally {
+            toolCalls?.add(FrameworkToolCall(name, arguments, successful, (System.nanoTime() - start) / NANOS_PER_MS))
+        }
+    }
+
     private fun record(vararg paths: String) {
         if (sources != null) {
-            check(++calls <= MAX_TOOL_CALLS) { "Tool call limit reached. Answer using the information already retrieved." }
             sources.addAll(paths)
         }
     }
@@ -25,12 +43,13 @@ class FrameworkTools(
             "List framework IDs, names and descriptions in the specification catalog. " +
                 "Use exact IDs to distinguish versions. This catalog may not cover every framework in the frontend.",
     )
-    fun listFrameworks(): List<Map<String, String>> {
-        record("/specifications/frameworks")
-        return database.frameworks.values.sortedBy { it.id }.map {
-            mapOf("id" to it.id, "name" to it.name, "description" to it.businessDefinition, "source" to frameworkPath(it.id))
+    fun listFrameworks(): List<Map<String, String>> =
+        execute("list_frameworks") {
+            record("/specifications/frameworks")
+            database.frameworks.values.sortedBy { it.id }.map {
+                mapOf("id" to it.id, "name" to it.name, "description" to it.businessDefinition, "source" to frameworkPath(it.id))
+            }
         }
-    }
 
     /** Searches field names, IDs, paths and English definitions without loading whole schemas into the model. */
     @Tool(
@@ -43,34 +62,35 @@ class FrameworkTools(
     fun searchFields(
         @ToolParam(description = "One or more English search keywords") query: String,
         @ToolParam(description = "Exact framework ID, or omit to search all frameworks", required = false) frameworkId: String?,
-    ): Map<String, Any> {
-        require(query.isNotBlank() && query.length <= MAX_QUERY_LENGTH) { "Provide between 1 and 200 search characters." }
-        require(frameworkId == null || database.frameworks.containsKey(frameworkId)) { "Unknown framework ID. Use list_frameworks." }
-        val terms = query.lowercase().split(Regex("\\s+")).filter { it.isNotBlank() }
-        val matches =
-            database.frameworks.values
-                .asSequence()
-                .filter { frameworkId == null || it.id == frameworkId }
-                .sortedBy { it.id }
-                .flatMap { framework ->
-                    framework.flattenedSchema.asSequence().mapNotNull { entry ->
-                        val field = database.dataPointTypes[entry.value] ?: return@mapNotNull null
-                        val text = "${field.id} ${field.name} ${field.businessDefinition} ${entry.jsonPath}".lowercase()
-                        if (terms.all { it in text }) {
-                            mapOf(
-                                "frameworkId" to framework.id, "path" to entry.jsonPath, "id" to field.id,
-                                "name" to field.name, "description" to field.businessDefinition.take(SNIPPET_LENGTH),
-                                "source" to fieldPath(field.id),
-                            )
-                        } else {
-                            null
+    ): Map<String, Any> =
+        execute("search_fields", mapOf("query" to query, "frameworkId" to frameworkId.orEmpty())) {
+            require(query.isNotBlank() && query.length <= MAX_QUERY_LENGTH) { "Provide between 1 and 200 search characters." }
+            require(frameworkId == null || database.frameworks.containsKey(frameworkId)) { "Unknown framework ID. Use list_frameworks." }
+            val terms = query.lowercase().split(Regex("\\s+")).filter { it.isNotBlank() }
+            val matches =
+                database.frameworks.values
+                    .asSequence()
+                    .filter { frameworkId == null || it.id == frameworkId }
+                    .sortedBy { it.id }
+                    .flatMap { framework ->
+                        framework.flattenedSchema.asSequence().mapNotNull { entry ->
+                            val field = database.dataPointTypes[entry.value] ?: return@mapNotNull null
+                            val text = "${field.id} ${field.name} ${field.businessDefinition} ${entry.jsonPath}".lowercase()
+                            if (terms.all { it in text }) {
+                                mapOf(
+                                    "frameworkId" to framework.id, "path" to entry.jsonPath, "id" to field.id,
+                                    "name" to field.name, "description" to field.businessDefinition.take(SNIPPET_LENGTH),
+                                    "source" to fieldPath(field.id),
+                                )
+                            } else {
+                                null
+                            }
                         }
-                    }
-                }.take(MAX_RESULTS + 1)
-                .toList()
-        record(*matches.take(MAX_RESULTS).map { it.getValue("source") }.toTypedArray())
-        return mapOf("matches" to matches.take(MAX_RESULTS), "truncated" to (matches.size > MAX_RESULTS))
-    }
+                    }.take(MAX_RESULTS + 1)
+                    .toList()
+            record(*matches.take(MAX_RESULTS).map { it.getValue("source") }.toTypedArray())
+            mapOf("matches" to matches.take(MAX_RESULTS), "truncated" to (matches.size > MAX_RESULTS))
+        }
 
     /** Returns the authoritative definition and its declared validation and calculation metadata. */
     @Tool(
@@ -82,27 +102,92 @@ class FrameworkTools(
     )
     fun getFieldDefinition(
         @ToolParam(description = "Exact data point type ID") dataPointTypeId: String,
-    ): Map<String, Any> {
-        val field = requireNotNull(database.dataPointTypes[dataPointTypeId]) { "Unknown data point ID. Use search_fields." }
-        val baseType = database.dataPointBaseTypes.getValue(field.dataPointBaseTypeId)
-        record(fieldPath(field.id), "/specifications/data-point-base-types/${baseType.id}")
-        return mapOf(
-            "id" to field.id, "name" to field.name, "description" to field.businessDefinition,
-            "constraints" to field.constraints.orEmpty(), "calculationRules" to field.calculationRules,
-            "baseType" to
-                mapOf(
-                    "id" to baseType.id, "name" to baseType.name, "description" to baseType.businessDefinition,
-                    "exampleJson" to baseType.example.toString(),
-                ),
-            "usedBy" to
-                database.frameworks.values.sortedBy { it.id }.flatMap { framework ->
-                    framework.flattenedSchema.filter { it.value == field.id }.map {
-                        mapOf("frameworkId" to framework.id, "path" to it.jsonPath)
+    ): Map<String, Any> =
+        execute("get_field_definition", mapOf("dataPointTypeId" to dataPointTypeId)) {
+            val field = requireNotNull(database.dataPointTypes[dataPointTypeId]) { "Unknown data point ID. Use search_fields." }
+            val baseType = database.dataPointBaseTypes.getValue(field.dataPointBaseTypeId)
+            record(fieldPath(field.id), "/specifications/data-point-base-types/${baseType.id}")
+            mapOf(
+                "id" to field.id, "name" to field.name, "description" to field.businessDefinition,
+                "constraints" to field.constraints.orEmpty(), "calculationRules" to field.calculationRules,
+                "baseType" to
+                    mapOf(
+                        "id" to baseType.id, "name" to baseType.name, "description" to baseType.businessDefinition,
+                        "exampleJson" to baseType.example.toString(),
+                    ),
+                "usedBy" to
+                    database.frameworks.values.sortedBy { it.id }.flatMap { framework ->
+                        framework.flattenedSchema.filter { it.value == field.id }.map {
+                            mapOf("frameworkId" to framework.id, "path" to it.jsonPath)
+                        }
+                    },
+                "source" to fieldPath(field.id),
+            )
+        }
+
+    /** Compares exact IDs over complete schemas, with bounded, pageable field details. */
+    @Tool(
+        name = "compare_frameworks",
+        description =
+            "Compare shared data points using identical data point type IDs, not semantic similarity. " +
+                "Use this for questions about shared fields or framework overlap, instead of keyword searches. " +
+                "Omit frameworkIds to compare all frameworks, or provide at least two exact IDs. " +
+                "Returns exact counts for every pair and a page of fields shared by at least two selected frameworks. " +
+                "Pairwise overlap is not necessarily shared by all frameworks. Use offset to read further pages.",
+    )
+    fun compareFrameworks(
+        @ToolParam(description = "Exact framework IDs, or omit for all frameworks", required = false) frameworkIds: List<String>?,
+        @ToolParam(description = "Shared-field offset, defaults to zero", required = false) offset: Int?,
+    ): Map<String, Any> =
+        execute(
+            "compare_frameworks", mapOf("frameworkIds" to frameworkIds.orEmpty().joinToString(", "), "offset" to (offset ?: 0).toString()),
+        ) {
+            val ids = frameworkIds?.distinct()?.sorted() ?: database.frameworks.keys.sorted()
+            require(ids.size >= 2 && ids.all { it in database.frameworks }) { "Provide at least two known framework IDs or omit them." }
+            val pageOffset = offset ?: 0
+            require(pageOffset >= 0) { "Offset must not be negative." }
+            val fieldsByFramework =
+                ids.associateWith { id ->
+                    database.frameworks
+                        .getValue(id)
+                        .flattenedSchema
+                        .mapNotNull { it.value }
+                        .toSet()
+                }
+            val shared =
+                fieldsByFramework.values.flatten().distinct().sorted().mapNotNull { fieldId ->
+                    val usedBy = ids.filter { fieldId in fieldsByFramework.getValue(it) }
+                    if (usedBy.size < 2) {
+                        null
+                    } else {
+                        mapOf(
+                            "id" to fieldId, "name" to database.dataPointTypes.getValue(fieldId).name, "frameworkIds" to usedBy,
+                        )
                     }
-                },
-            "source" to fieldPath(field.id),
-        )
-    }
+                }
+            val pairs =
+                ids.flatMapIndexed { index, left ->
+                    ids.drop(index + 1).map { right ->
+                        mapOf(
+                            "frameworkIds" to listOf(left, right),
+                            "sharedCount" to
+                                fieldsByFramework
+                                    .getValue(left)
+                                    .intersect(
+                                        fieldsByFramework.getValue(right),
+                                    ).size,
+                        )
+                    }
+                }
+            record(*ids.map(::frameworkPath).toTypedArray())
+            mapOf(
+                "comparisonBasis" to "Identical data point type IDs; not semantic similarity or company values",
+                "fieldCounts" to fieldsByFramework.mapValues { it.value.size }, "pairs" to pairs,
+                "sharedByAllCount" to fieldsByFramework.values.reduce { left, right -> left.intersect(right) }.size,
+                "totalSharedFields" to shared.size, "sharedFields" to shared.drop(pageOffset).take(MAX_RESULTS),
+                "offset" to pageOffset, "hasMore" to (shared.size.toLong() > pageOffset.toLong() + MAX_RESULTS),
+            )
+        }
 
     private fun frameworkPath(id: String) = "/specifications/frameworks/$id"
 
@@ -113,5 +198,6 @@ class FrameworkTools(
         private const val MAX_QUERY_LENGTH = 200
         private const val SNIPPET_LENGTH = 300
         private const val MAX_TOOL_CALLS = 10
+        private const val NANOS_PER_MS = 1_000_000
     }
 }

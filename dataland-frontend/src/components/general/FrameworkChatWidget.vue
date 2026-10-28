@@ -11,7 +11,27 @@
     <div ref="conversation" class="framework-chat-messages" role="log" aria-live="polite" aria-label="Conversation">
       <article v-for="(message, index) in messages" :key="index" class="mb-3">
         <strong>{{ message.role === 'USER' ? 'You' : 'Dataland assistant' }}</strong>
-        <p class="framework-chat-text" data-test="framework-chat-message">{{ message.content }}</p>
+        <RenderSanitizedMarkdownInput
+          v-if="message.role === 'ASSISTANT'"
+          :text="message.content"
+          class="framework-chat-answer"
+          data-test="framework-chat-message"
+        />
+        <p v-else class="framework-chat-text" data-test="framework-chat-message">{{ message.content }}</p>
+        <details v-if="message.toolCalls?.length" class="mb-3" data-test="framework-chat-tools">
+          <summary>Tool calls ({{ message.toolCalls.length }})</summary>
+          <ol>
+            <li v-for="(call, callIndex) in message.toolCalls" :key="callIndex" class="mb-2">
+              <code>{{ call.name }}</code> — {{ call.successful ? 'Completed' : 'Failed' }} ({{ call.durationMs }} ms)
+              <dl v-if="Object.keys(call.arguments).length">
+                <template v-for="(value, key) in call.arguments" :key="key">
+                  <dt>{{ key }}</dt>
+                  <dd class="framework-chat-text">{{ value || '(all / not specified)' }}</dd>
+                </template>
+              </dl>
+            </li>
+          </ol>
+        </details>
         <ul v-if="message.sources?.length" aria-label="Retrieved specifications">
           <li v-for="source in message.sources" :key="source">
             <a :href="source" target="_blank" rel="noopener noreferrer">{{ source.split('/').at(-1) }}</a>
@@ -56,11 +76,13 @@ import Dialog from 'primevue/dialog';
 import Message from 'primevue/message';
 import Textarea from 'primevue/textarea';
 import { isAxiosError } from 'axios';
-import { type FrameworkChatMessage } from '@clients/specificationservice';
+import { type FrameworkChatMessage, type FrameworkToolCall } from '@clients/specificationservice';
 import { useChatMutation } from '@/api-queries/specification-service/chat/useChatMutation';
+import RenderSanitizedMarkdownInput from '@/components/general/RenderSanitizedMarkdownInput.vue';
 
 interface DisplayMessage extends FrameworkChatMessage {
   sources?: string[];
+  toolCalls?: FrameworkToolCall[];
 }
 
 const visible = ref(false);
@@ -87,7 +109,12 @@ async function send(): Promise<void> {
     });
     messages.value.push(
       { role: 'USER', content },
-      { role: 'ASSISTANT', content: response.answer, sources: response.sources.filter(isSpecificationPath) }
+      {
+        role: 'ASSISTANT',
+        content: response.answer,
+        sources: response.sources.filter(isSpecificationPath),
+        toolCalls: response.toolCalls,
+      }
     );
     question.value = '';
     await nextTick();
@@ -114,7 +141,8 @@ function clear(): void {
 .framework-chat-launcher {
   position: fixed;
   bottom: 1rem;
-  right: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 100;
 }
 
@@ -126,5 +154,46 @@ function clear(): void {
 .framework-chat-text {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+.framework-chat-answer {
+  margin-block: 0.75rem;
+  overflow-wrap: anywhere;
+  overflow-x: auto;
+}
+
+.framework-chat-answer :deep(p),
+.framework-chat-answer :deep(ul),
+.framework-chat-answer :deep(ol) {
+  margin-block: 0.5rem;
+  line-height: 1.5;
+}
+
+.framework-chat-answer :deep(h2),
+.framework-chat-answer :deep(h3) {
+  margin-block: 1rem 0.5rem;
+  font-size: 1.1rem;
+}
+
+.framework-chat-answer :deep(table) {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.framework-chat-answer :deep(th),
+.framework-chat-answer :deep(td) {
+  border: 1px solid var(--p-content-border-color);
+  padding: 0.5rem;
+  text-align: left;
+}
+
+.framework-chat-answer :deep(code) {
+  background: var(--p-content-hover-background);
+  padding: 0.1rem 0.25rem;
+  border-radius: 0.25rem;
+}
+
+.framework-chat-answer :deep(pre) {
+  overflow-x: auto;
 }
 </style>

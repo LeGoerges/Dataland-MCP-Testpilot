@@ -4,4 +4,5 @@ package org.dataland.datalandspecificationservice.model
 data class FrameworkChatResponse(
     val answer: String,
     val sources: List<String>,
+    val toolCalls: List<FrameworkToolCall> = emptyList(),
 )

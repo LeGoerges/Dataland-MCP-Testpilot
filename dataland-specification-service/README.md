@@ -1,10 +1,11 @@
 # Framework assistant and MCP
 
 Architecture sketch: [architecture.drawio](architecture.drawio) (open in diagrams.net or a draw.io editor).
+Presentation notes: [architecture.md](architecture.md).
 
-The specification service exposes three read-only tools over Streamable HTTP at
+The specification service exposes four read-only tools over Streamable HTTP at
 `/specifications/mcp`: `list_frameworks`, `search_fields`, and
-`get_field_definition`. They read the same in-memory specifications as the REST API.
+`get_field_definition`, and `compare_frameworks`. They read the same in-memory specifications as the REST API.
 No model credentials are required for MCP; the connecting client supplies its own model.
 
 ## Local demonstration
@@ -38,6 +39,15 @@ without response buffering. Ask OpenCode, for example:
 ## Frontend chat
 
 The Vue app includes a **Framework help** button. It calls `POST /specifications/chat`.
+Each answer includes an expandable **Tool calls** section with the executed tool
+names, arguments, execution status and duration. It appears when the complete answer
+arrives, rather than streaming live updates. This is server-recorded execution metadata,
+not the model's internal reasoning; it is not included in subsequent conversation history.
+
+For overlap questions, `compare_frameworks` compares the complete framework schemas
+by exact data point type ID. It returns counts for every selected pair, a count shared
+by all selected frameworks and paginated shared-field examples (15 per page). Two
+fields with similar descriptions but different IDs are not counted as shared.
 The chat uses the same tool implementation directly inside the service, without an
 MCP client or an additional backend service.
 
